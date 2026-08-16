@@ -5,8 +5,7 @@ import random
 import time
 from typing import List, Optional
 
-from google import genai
-from google.genai import types
+from openai import OpenAI
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,13 +27,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-MODEL = "gemini-2.5-flash"
+client = OpenAI(
+    api_key=os.environ.get("QWEN_API_KEY"),
+    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+)
+MODEL = "qwen-plus"
 
 DB_FILE = "ember.db"
 
 def init_db():
-    # We will recreate the DB to match the new schema for V2
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('''
@@ -77,6 +78,16 @@ class WorldEntry(BaseModel):
     position_seed: float
 
 
+class ChatRequest(BaseModel):
+    memory_text: str
+    zone: str
+    intensity: int
+    user_message: str
+
+class ChatResponse(BaseModel):
+    reply: str
+
+
 @app.post("/entry", response_model=EntryResponse)
 def create_entry(req: EntryRequest):
     user_text = req.text.strip()
@@ -84,16 +95,17 @@ def create_entry(req: EntryRequest):
         return EntryResponse(mode="reflection")
 
     # 1. Guardrail check
-    guardrail_msg = client.models.generate_content(
+    response = client.chat.completions.create(
         model=MODEL,
-        contents=user_text,
-        config=types.GenerateContentConfig(
-            system_instruction=GUARDRAIL_SYSTEM_PROMPT,
-            temperature=0.0,
-            max_output_tokens=100,
-        )
+        messages=[
+            {"role": "system", "content": GUARDRAIL_SYSTEM_PROMPT},
+            {"role": "user", "content": user_text}
+        ],
+        temperature=0.0,
+        max_tokens=100,
     )
-    raw = guardrail_msg.text.strip()
+    raw = response.choices[0].message.content.strip()
+    
     try:
         cleaned = raw.replace("```json", "").replace("```", "").strip()
         risk_data = json.loads(cleaned)
@@ -105,28 +117,29 @@ def create_entry(req: EntryRequest):
         return EntryResponse(mode="crisis", text=CRISIS_RESPONSE_TEXT)
 
     # 2. Reflector (Outputs ONLY the text)
-    reflect_msg = client.models.generate_content(
+    response = client.chat.completions.create(
         model=MODEL,
-        contents=user_text,
-        config=types.GenerateContentConfig(
-            system_instruction=REFLECTOR_SYSTEM_PROMPT,
-            temperature=0.7,
-            max_output_tokens=150,
-        )
+        messages=[
+            {"role": "system", "content": REFLECTOR_SYSTEM_PROMPT},
+            {"role": "user", "content": user_text}
+        ],
+        temperature=0.7,
+        max_tokens=150,
     )
-    reflection_line = reflect_msg.text.strip().replace('"', '')
+    reflection_line = response.choices[0].message.content.strip().replace('"', '')
 
     # 3. Analyzer (Outputs JSON with zone and intensity)
-    analyze_msg = client.models.generate_content(
+    response = client.chat.completions.create(
         model=MODEL,
-        contents=user_text,
-        config=types.GenerateContentConfig(
-            system_instruction=ANALYZER_SYSTEM_PROMPT,
-            temperature=0.0,
-            max_output_tokens=100,
-        )
+        messages=[
+            {"role": "system", "content": ANALYZER_SYSTEM_PROMPT},
+            {"role": "user", "content": user_text}
+        ],
+        temperature=0.0,
+        max_tokens=100,
     )
-    analyze_raw = analyze_msg.text.strip()
+    analyze_raw = response.choices[0].message.content.strip()
+    
     try:
         cleaned_analyze = analyze_raw.replace("```json", "").replace("```", "").strip()
         analyze_data = json.loads(cleaned_analyze)
@@ -167,6 +180,24 @@ def get_world():
     
     return [WorldEntry(**dict(row)) for row in rows]
 
+
+@app.post("/chat", response_model=ChatResponse)
+def memory_chat(req: ChatRequest):
+    system_instruction = f"You are the user's past self from a specific memory. In that moment, your raw thought was: '{req.memory_text}'. Your emotional state was classified as '{req.zone}' with an intensity of {req.intensity}/10. Speak directly to the user as that specific version of themselves. Keep your responses profound, poetic, short (1-2 sentences), and entirely rooted in the emotional context of that specific memory."
+    
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": req.user_message}
+            ],
+            temperature=0.7,
+            max_tokens=150,
+        )
+        return ChatResponse(reply=response.choices[0].message.content.strip())
+    except Exception as e:
+        return ChatResponse(reply="I am too far away to speak right now. The signal is lost.")
 
 @app.get("/health")
 def health():
