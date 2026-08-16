@@ -2,12 +2,11 @@
 
 import React, { useEffect, useRef, useState, FormEvent } from "react";
 
-const PORTAL_BG = 'https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1779707217/image_1_vdzwae.png';
-const CURTAIN_LEFT = 'https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1779706559/curtain_left_znkmva.png';
-const CURTAIN_RIGHT = 'https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1779706564/curtain_right_paeyym.png';
-const WORLD_BG = 'https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1779706392/image_2_gkcdlx.png';
-const BOTTOM_CLOUDS = 'https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1779706555/bottom_clouds_xskut6.png';
-
+const PORTAL_BG = 'https://res.cloudinary.com/dsdhxhhqh/image/upload/v1779974947/portal_bg_mu60k9.png';
+const CURTAIN_LEFT = 'https://res.cloudinary.com/dsdhxhhqh/image/upload/v1779975070/curtain_left_cdht6q.png';
+const CURTAIN_RIGHT = 'https://res.cloudinary.com/dsdhxhhqh/image/upload/v1779975071/curtain_right_a9bn3i.png';
+const WORLD_BG = 'https://res.cloudinary.com/dsdhxhhqh/image/upload/v1779975077/world_bg_jzzcn1.jpg';
+const BOTTOM_CLOUDS = ''; // The cloud image from the second prompt is dead
 const CARD_IMAGES = [
   'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260525_160507_2ccbb4eb-1469-484f-af25-59168ad9a233.png&w=1280&q=85',
   'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260525_160644_072a7f68-a101-4ded-a332-7d37707dbdd1.png&w=1280&q=85',
@@ -306,12 +305,14 @@ export default function EmberReverie() {
         />
 
         {/* Layer 2: Bottom Clouds */}
-        <img 
-          ref={cloudsRef}
-          src={BOTTOM_CLOUDS}
-          alt="Clouds"
-          className="absolute bottom-0 left-0 right-0 w-full h-auto origin-bottom will-change-transform z-10"
-        />
+        {BOTTOM_CLOUDS && (
+          <img 
+            ref={cloudsRef}
+            src={BOTTOM_CLOUDS}
+            alt="Clouds"
+            className="absolute bottom-0 left-0 right-0 w-full h-auto origin-bottom will-change-transform z-10"
+          />
+        )}
 
         {/* Layer 2.5: Arc Card Slider */}
         <div 
