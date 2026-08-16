@@ -33,7 +33,7 @@ client = OpenAI(
 )
 MODEL = "qwen-plus"
 
-DB_FILE = "ember.db"
+DB_FILE = "/tmp/ember.db" if os.environ.get("VERCEL") else "ember.db"
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
