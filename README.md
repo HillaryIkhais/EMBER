@@ -1,51 +1,98 @@
-# EMBER › REVERIE (V4 Masterpiece)
+# EMBER › REVERIE
 
-An immersive, cinematic mood tracker that fuses the boundlessness of digital environments with deep, AI-driven psychological reflection and generative audio synthesis.
-
-## What is Ember?
-EMBER is not just a journal—it is a living visual and spatial representation of your internal world. Every entry you log is analyzed by an AI engine to determine its emotional "zone" and "intensity," which is then rendered as a physical artifact within an infinite, parallax-driven 3D landscape.
-
-## V4 Masterpiece Features
-
-- **Generative Audio Engine:** A custom Web Audio API synthesizer is built into the environment. It dynamically generates a beautiful ambient drone that changes its frequencies (from major 432Hz to deep sub-bass) based on the current ratio of positive vs negative memories in your archive.
-- **AI Memory Commune (Chat):** Your memories are alive. Clicking on any card in the Arc Slider opens a frosted-glass chat interface where the Gemini AI assumes the persona of your *past self* from that exact moment, allowing you to converse with your history.
-- **Cinematic Parallax:** A 700vh scroll-linked animation system that pulls you through the cosmic portal, down into your Arc of memories, and finally plunges you into "The Deep Void" to view your most intense memory.
-- **Priority Override:** A built-in AI safety classifier that detects acute stress in your entries and elegantly overrides the UI to offer immediate grounding.
-
-## Tech Stack
-- **Frontend:** React, Next.js (Webpack), TypeScript, Tailwind CSS v4, Web Audio API.
-- **Backend:** Python, FastAPI, SQLite (`ember.db`), Uvicorn.
-- **AI Engine:** Google GenAI SDK replaced with Qwen API (`qwen-plus`).
+> *"Tending a world of your own making, one honest feeling at a time."*
 
 ---
 
-## Deployment (Web Hosting)
-Ember is now fully containerized and ready for production deployment using Docker!
+## ✦ The Story Behind Ember
 
-### Deploying to Render / Railway
-1. Push this entire repository to GitHub.
-2. Go to [Render](https://render.com/) or [Railway](https://railway.app/) and create a new **Web Service**.
-3. Connect your GitHub repository.
-4. The platform will automatically detect the `Dockerfile` in the root folder and build the container.
-5. **CRITICAL:** You must add the following Environment Variable in your Render/Railway dashboard:
-   - `QWEN_API_KEY` = `your_qwen_api_key_here`
-6. Once deployed, your frontend will be accessible via the provided URL!
+Most mood trackers fail for a very human reason: **blank-page paralysis and streak guilt**. 
 
-## How to Run Locally
+When you're overwhelmed, opening a journal app and seeing a empty text box or a broken "7-day streak" counter feels like homework you forgot to turn in. So, people quit. 
 
-You will need two terminal windows to run both servers locally.
+**Ember flips the script.** 
 
-### 1. Start the AI Backend
+Instead of asking you to log data for an algorithm, Ember gives your inner world a home. Every time you write what’s actually going on—whether it’s quiet joy or heavy grief—Ember doesn't just log text. It **plants a living artifact in a visual, spatial universe that is uniquely yours**.
+
+- Hard, heavy thoughts sink gently into **The Void**, taking root in cool, deep tones.
+- Bright, grounding thoughts blossom in **The Light**, glowing with warmth.
+
+Over time, you aren't staring at old logs or streak numbers. You’re looking at a living landscape built out of your own honesty—a place that visibly holds both the weight and the light of everything you've lived through.
+
+---
+
+## The Ember Experience
+
+### 1. The Living Canvas & Parallax Arc
+Your memories aren't buried in rows of text. They exist as illuminated embers within an interactive, parallax-driven 3D sky. As you scroll down the page, you travel through your personal memory continuum—from the vibrant constellation of your brightest moments down to the quiet depths of **The Void**.
+
+### 2. Generative Ambient Audio
+Ember listens to the emotional balance of your world. Built with the Web Audio API, an integrated generative synthesizer creates a soft, dynamic ambient drone:
+- When your world leans toward light, harmonic 432Hz major tones drift through the air.
+- When heavy memories accumulate, deep sub-bass frequencies anchor the soundscape.
+
+### 3. The Memory Commune (Dialogue with Your Past Self)
+What if you could speak directly to the person you were three weeks ago? 
+Clicking any ember in your landscape opens the **Commune**—a frosted-glass dialogue interface where AI assumes the exact emotional persona of your past self from that moment, letting you offer comfort, seek perspective, or simply listen.
+
+### 4. Uncompromising AI Safety (Guardrail First)
+Wellness technology must be responsible. Before any reflection runs, every entry passes through an isolated **Guardrail Classifier**:
+- If acute stress or crisis is detected, all visual planting and AI generation stop immediately.
+- The UI gracefully shifts to plain, compassionate, real-world crisis support resources (988 Helpline, Crisis Text Line) without judgment or delay.
+
+---
+
+## Technology & Craft
+
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend** | Next.js (App Router), React, TypeScript, Tailwind CSS, Web Audio API, Framer Motion |
+| **Backend** | Python, FastAPI, SQLite (`ember.db`), Uvicorn |
+| **AI Engine** | Qwen AI (`qwen-plus`) for Guardrail, Reflection & Memory Persona synthesis |
+| **Deployment** | Vercel (Frontend & Serverless Backend) / Docker |
+
+---
+
+## Running Ember Locally
+
+### Prerequisites
+- Node.js (v18+)
+- Python 3.10+
+- A `QWEN_API_KEY` (or compatible DashScope API key)
+
+### 1. Launch the Backend
 ```bash
+# Navigate to the backend directory
 cd backend
-# Make sure your QWEN_API_KEY environment variable is set!
+
+# Set your API key
+export QWEN_API_KEY="your_api_key_here"
+
+# Install dependencies (if needed)
+pip install -r requirements.txt
+
+# Start the FastAPI server
 uvicorn main:app --reload
 ```
-*The backend runs on `http://localhost:8000`.*
+*The backend API will run on `http://localhost:8000`.*
 
-### 2. Start the Immersive Frontend
+### 2. Launch the Frontend
+In a separate terminal window:
 ```bash
+# Navigate to the frontend directory
 cd frontend
+
+# Install dependencies
+npm install
+
+# Start the Next.js development server
 npm run dev
 ```
-*The frontend runs on `http://localhost:3000`. Ensure you have cleared your `.next` cache if you encounter `ENOENT` errors.*
+*Open `http://localhost:3000` in your browser to experience Ember.*
+
+
+---
+
+## A Note on Wellness
+
+Ember is designed as a daily practice of naming what is true—a peaceful harbor for self-expression and reflection. **It is not therapy, diagnosis, or clinical treatment.** Ember honors the space between keeping things inside and seeking professional support, giving you a quiet place to tend to yourself.
