@@ -1,13 +1,7 @@
 .env
 .env.local
-.venv
-node_modules/
-.next/
-*.db
-ember.db
-
-# Hackathon planning & handoff assets
-PROJECT_BRIEF.PDF
-PROJECT_BRIEF.md
-UI_VISUAL_PLAN.pdf
 ember_handoff.zip
+PROJECT_BRIEF.md
+PROJECT_BRIEF.PDF
+README.md
+UI_VISUAL_PLAN.pdf
