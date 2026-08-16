@@ -169,6 +169,19 @@ def create_entry(req: EntryRequest):
     )
 
 
+@app.get("/entry/{entry_id}", response_model=WorldEntry)
+def get_entry(entry_id: int):
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM entries WHERE id = ?", (entry_id,))
+    row = c.fetchone()
+    conn.close()
+    if row:
+        return WorldEntry(**dict(row))
+    raise HTTPException(status_code=404, detail="Entry not found")
+
+
 @app.get("/world", response_model=List[WorldEntry])
 def get_world():
     conn = sqlite3.connect(DB_FILE)

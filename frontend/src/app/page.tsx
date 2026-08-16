@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState, FormEvent, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 const PORTAL_BG = 'https://res.cloudinary.com/dsdhxhhqh/image/upload/v1779974947/portal_bg_mu60k9.png';
 const CURTAIN_LEFT = 'https://res.cloudinary.com/dsdhxhhqh/image/upload/v1779975070/curtain_left_cdht6q.png';
@@ -47,21 +48,10 @@ const getZoneSubtextColor = (zone: string, intensity: number) => {
 export default function EmberReverie() {
   const [isMobile, setIsMobile] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
   
   // App State
   const [entries, setEntries] = useState<WorldEntry[]>([]);
-  const [inputText, setInputText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [crisisText, setCrisisText] = useState<string | null>(null);
-  const [activeOverlay, setActiveOverlay] = useState<"insights" | "sanctuary" | "chat" | null>(null);
-  const [inputFocused, setInputFocused] = useState(false);
-
-  // Chat State
-  const [activeMemory, setActiveMemory] = useState<WorldEntry | null>(null);
-  const [chatMessages, setChatMessages] = useState<{role: 'user'|'memory', text: string}[]>([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Computed data
   const mostIntenseEntry = useMemo(() => {
@@ -92,97 +82,14 @@ export default function EmberReverie() {
 
   // Fetch backend data
   useEffect(() => {
-    fetch("http://localhost:8000/world")
+    fetch(process.env.NODE_ENV === "production" ? "/api/backend/world" : "http://localhost:8000/world")
       .then(res => res.json())
       .then(data => setEntries(data))
       .catch(console.error);
   }, []);
 
-  // Chat Auto-scroll
-  useEffect(() => {
-    if (chatScrollRef.current) {
-      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-    }
-  }, [chatMessages]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
-    setLoading(true);
-    setCrisisText(null);
-    
-    try {
-      const res = await fetch("http://localhost:8000/entry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: inputText })
-      });
-      const data = await res.json();
-      
-      if (data.mode === "crisis") {
-        setCrisisText(data.text);
-      } else {
-        const newEntry = {
-          id: Date.now(),
-          timestamp: Date.now(),
-          raw_text: inputText,
-          zone: data.zone,
-          intensity: data.intensity,
-          reflection_line: data.reflection_line,
-          position_seed: data.position_seed
-        };
-        setEntries(prev => [...prev, newEntry]);
-      }
-      setInputText("");
-      
-      if (entries.length >= 0) {
-        window.scrollTo({ top: (document.body.scrollHeight - window.innerHeight) * 0.5, behavior: 'smooth' });
-      }
-
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-      setInputFocused(false);
-    }
-  };
-
-  const handleChatSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || !activeMemory) return;
-    
-    const userMsg = chatInput.trim();
-    setChatMessages(prev => [...prev, {role: 'user', text: userMsg}]);
-    setChatInput("");
-    setChatLoading(true);
-
-    try {
-      const res = await fetch("http://localhost:8000/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          memory_text: activeMemory.raw_text,
-          zone: activeMemory.zone,
-          intensity: activeMemory.intensity,
-          user_message: userMsg
-        })
-      });
-      const data = await res.json();
-      setChatMessages(prev => [...prev, {role: 'memory', text: data.reply}]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
   const openMemoryChat = (entry: WorldEntry) => {
-    setActiveMemory(entry);
-    setActiveOverlay("chat");
-    setChatMessages([{
-      role: 'memory', 
-      text: `I am you from the moment you felt this: "${entry.reflection_line}". Why have you returned here?`
-    }]);
+    router.push(`/commune/${entry.id}`);
   };
 
   useEffect(() => {
@@ -288,6 +195,11 @@ export default function EmberReverie() {
         scene2Ref.current.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
         
         const totalCards = entries.length;
+        if (arcSliderRef.current) {
+          arcSliderRef.current.style.opacity = `${opacity}`;
+          arcSliderRef.current.style.pointerEvents = opacity > 0.5 ? "auto" : "none";
+        }
+        
         if (totalCards > 0 && arcSliderRef.current) {
           const arcSweepDeg = (totalCards - 1) * 10;
           const sliderProgress = clamp((sp - 0.35) / 0.30, 0, 1);
@@ -363,90 +275,6 @@ export default function EmberReverie() {
   return (
     <div style={{ height: "700vh", width: "100%", position: "relative" }} className="bg-[#0a0608]">
       
-      {/* Overlays */}
-      {activeOverlay && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in duration-500">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-3xl" onClick={() => setActiveOverlay(null)}></div>
-          
-          <div className="relative z-10 w-full max-w-lg border border-white/10 bg-white/5 rounded-3xl p-10 shadow-2xl overflow-hidden">
-            <button onClick={() => setActiveOverlay(null)} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors text-sm uppercase tracking-widest z-[10]">Close</button>
-            
-            {activeOverlay === "insights" && (
-              <div className="text-center relative z-10">
-                <h2 className="font-serif text-3xl text-white mb-8">Emotional Insights</h2>
-                <div className="flex justify-around mb-8">
-                  <div>
-                    <div className="text-4xl font-serif text-[#dcedc2] mb-2">{entries.filter(e => e.zone === 'positive').length}</div>
-                    <div className="text-xs uppercase tracking-widest text-white/50">Ascendent<br/>(Positive)</div>
-                  </div>
-                  <div>
-                    <div className="text-4xl font-serif text-[#f3cdd6] mb-2">{entries.filter(e => e.zone === 'negative').length}</div>
-                    <div className="text-xs uppercase tracking-widest text-white/50">Abyssal<br/>(Negative)</div>
-                  </div>
-                </div>
-                <p className="text-white/70 text-sm font-sans leading-relaxed">Your emotional topography reflects a deep complexity. Each entry maps an entirely new coordinate in the vast architecture of your mind.</p>
-              </div>
-            )}
-
-            {activeOverlay === "sanctuary" && (
-              <div className="text-center py-12 flex flex-col items-center relative z-10">
-                <h2 className="font-serif text-2xl text-white/90 mb-12">Breathe.</h2>
-                <div className="relative w-32 h-32">
-                  <div className="absolute inset-0 border border-white/20 rounded-full animate-[ping_4s_ease-in-out_infinite]"></div>
-                  <div className="absolute inset-4 bg-white/5 backdrop-blur-sm border border-white/40 rounded-full flex items-center justify-center animate-bobUp">
-                    <span className="text-white/50 text-[10px] uppercase tracking-[0.3em]">Exhale</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeOverlay === "chat" && activeMemory && (
-              <div className="flex flex-col h-[500px] relative z-10">
-                <div className="mb-6 border-b border-white/10 pb-4">
-                  <h3 className="font-serif text-xl text-white">Converse with Past Self</h3>
-                  <div className="text-[10px] tracking-widest text-white/50 uppercase mt-1">Memory Intensity: {activeMemory.intensity}/10</div>
-                </div>
-                
-                <div ref={chatScrollRef} className="flex-1 overflow-y-auto flex flex-col gap-4 pr-2 pb-4 scrollbar-thin scrollbar-thumb-white/10">
-                  {chatMessages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] rounded-2xl p-4 text-sm font-sans leading-relaxed ${
-                        msg.role === 'user' 
-                          ? 'bg-white/10 text-white border border-white/20 rounded-tr-sm' 
-                          : 'bg-black/40 text-white/90 border border-white/5 rounded-tl-sm shadow-inner'
-                      }`}>
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))}
-                  {chatLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-black/40 text-white/50 border border-white/5 rounded-2xl rounded-tl-sm p-4 text-xs tracking-widest uppercase animate-pulse">
-                        Sensing...
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <form onSubmit={handleChatSubmit} className="mt-2 relative">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    disabled={chatLoading}
-                    placeholder="Speak to your memory..."
-                    className="w-full bg-black/40 border border-white/20 text-white px-5 py-4 rounded-xl outline-none placeholder-white/30 text-sm focus:border-white/50 transition-colors"
-                  />
-                  <button type="submit" disabled={chatLoading || !chatInput.trim()} className="absolute right-2 top-2 bottom-2 bg-white text-black px-4 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-white/90 transition-colors">
-                    Send
-                  </button>
-                </form>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Sticky Container */}
       <div className="sticky top-0 left-0 w-full h-[100vh] overflow-hidden bg-[#0a0608] font-sans">
         
@@ -511,18 +339,18 @@ export default function EmberReverie() {
             <>
               <NavItem label="Memories" onClick={scrollToArc} />
               <div className="absolute left-1/2 -translate-x-1/2"><StarLogo /></div>
-              <NavItem label="Insights" onClick={() => setActiveOverlay("insights")} />
+              <NavItem label="Insights" onClick={() => router.push('/insights')} />
             </>
           ) : (
             <>
               <div className="flex gap-[48px]">
                 <NavItem label="Memories" onClick={scrollToArc} />
-                <NavItem label="Insights" onClick={() => setActiveOverlay("insights")} />
+                <NavItem label="Insights" onClick={() => router.push('/insights')} />
               </div>
               <div className="absolute left-1/2 -translate-x-1/2"><StarLogo /></div>
               <div className="flex gap-[48px]">
-                <NavItem label="Sanctuary" onClick={() => setActiveOverlay("sanctuary")} />
-                <NavItem label="Log" onClick={() => { scrollToArc(); document.getElementById('log-input')?.focus(); }} />
+                <NavItem label="Sanctuary" onClick={() => {}} />
+                <NavItem label="Log" onClick={() => router.push('/log')} />
               </div>
             </>
           )}
@@ -543,7 +371,7 @@ export default function EmberReverie() {
                 <span className="text-[clamp(32px,4vw,48px)] leading-[1.1] tracking-[0.06em] mb-1">FALL <span className="text-[rgba(255,220,180,0.7)]">›</span> <span className="italic">INTO</span></span>
                 <span className="text-[clamp(50px,8vw,110px)] leading-[0.9] tracking-[-0.02em]">EMBER</span>
               </h1>
-              <p className="font-sans text-[18px] leading-[1.7] text-white/80 max-w-[340px]">A living emotional codex. Your mind mapped as boundless digital architecture.</p>
+              <p className="font-sans text-[18px] leading-[1.7] text-white/80 max-w-[340px]">A living emotional archive. Your mind mapped as boundless digital architecture.</p>
             </div>
             <div className="absolute bottom-[40px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 transition-opacity delay-[900ms]">
               <span className="text-[10px] uppercase tracking-[0.3em] text-white/50">Scroll</span>
@@ -555,7 +383,7 @@ export default function EmberReverie() {
         {/* SCENE 2 UI */}
         <div ref={scene2Ref} className="absolute inset-0 z-[46] flex flex-col items-center pointer-events-none" style={{ opacity: 0 }}>
           <div className="text-center px-6 max-w-4xl flex flex-col items-center" style={{ marginTop: isMobile ? '10vh' : '12vh' }}>
-            <h2 className="font-serif text-white uppercase tracking-[0.06em] leading-[1.05] mb-4 drop-shadow-2xl" style={{ fontSize: isMobile ? "28px" : "64px" }}>YOUR LIVING CODEX</h2>
+            <h2 className="font-serif text-white uppercase tracking-[0.06em] leading-[1.05] mb-4 drop-shadow-2xl" style={{ fontSize: isMobile ? "28px" : "64px" }}>YOUR LIVING ARCHIVE</h2>
             <p className="font-sans text-white/70 leading-[1.6]" style={{ fontSize: isMobile ? "14px" : "18px", maxWidth: isMobile ? "280px" : "480px" }}>These are the fragments of your journey. Hover and click to commune.</p>
           </div>
         </div>
@@ -574,27 +402,6 @@ export default function EmberReverie() {
               <h2 className="font-serif text-white/30 text-4xl">No memories profound enough yet.</h2>
             )}
           </div>
-        </div>
-
-        {/* INPUT FORM */}
-        <div className={`absolute inset-0 bg-black/20 backdrop-blur-[24px] z-[90] transition-all duration-700 pointer-events-none ${inputFocused ? 'opacity-100' : 'opacity-0'}`}></div>
-        <div className="absolute bottom-8 w-full flex justify-center z-[100] px-6">
-           {crisisText ? (
-             <div className="w-full max-w-2xl bg-[#2a0810]/95 border border-red-500/30 p-8 rounded-3xl backdrop-blur-2xl shadow-2xl animate-in slide-in-from-bottom-10 duration-500">
-               <div className="flex items-center gap-3 mb-6">
-                 <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
-                 <div className="text-red-300 text-[10px] tracking-[0.25em] uppercase font-sans">Priority Override Active</div>
-               </div>
-               <p className="text-white/90 text-[15px] font-sans mb-8 whitespace-pre-line leading-[1.8]">{crisisText}</p>
-               <button onClick={() => setCrisisText(null)} className="w-full text-xs uppercase tracking-[0.2em] bg-red-500/10 border border-red-500/30 py-4 hover:bg-red-500/20 text-white transition-colors rounded-xl font-sans">I understand. Return.</button>
-             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="w-full max-w-2xl relative group">
-              <div className={`absolute inset-0 rounded-[28px] border transition-colors duration-500 shadow-2xl pointer-events-none ${inputFocused ? 'bg-white/10 border-white/30 backdrop-blur-2xl' : 'bg-[#1a0f16]/60 border-white/10 backdrop-blur-xl group-hover:bg-[#1a0f16]/80'}`}></div>
-              <input id="log-input" type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} disabled={loading} placeholder="What's going on right now?" className="w-full bg-transparent text-white px-8 py-5 text-[16px] outline-none transition-colors placeholder-white/40 rounded-[28px] font-sans relative z-10" />
-              <button type="submit" disabled={loading || !inputText.trim()} className={`absolute right-3 top-3 bottom-3 px-8 text-[11px] tracking-[0.15em] uppercase transition-all duration-300 rounded-[20px] font-sans z-10 flex items-center justify-center ${inputFocused && inputText.trim() ? 'bg-white text-black hover:scale-105' : 'bg-white/10 text-white/50 hover:bg-white/20'}`}>{loading ? "..." : "Log"}</button>
-            </form>
-          )}
         </div>
 
       </div>

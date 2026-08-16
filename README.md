@@ -7,7 +7,7 @@ EMBER is not just a journal—it is a living visual and spatial representation o
 
 ## V4 Masterpiece Features
 
-- **Generative Audio Engine:** A custom Web Audio API synthesizer is built into the environment. It dynamically generates a beautiful ambient drone that changes its frequencies (from major 432Hz to deep sub-bass) based on the current ratio of positive vs negative memories in your codex.
+- **Generative Audio Engine:** A custom Web Audio API synthesizer is built into the environment. It dynamically generates a beautiful ambient drone that changes its frequencies (from major 432Hz to deep sub-bass) based on the current ratio of positive vs negative memories in your archive.
 - **AI Memory Commune (Chat):** Your memories are alive. Clicking on any card in the Arc Slider opens a frosted-glass chat interface where the Gemini AI assumes the persona of your *past self* from that exact moment, allowing you to converse with your history.
 - **Cinematic Parallax:** A 700vh scroll-linked animation system that pulls you through the cosmic portal, down into your Arc of memories, and finally plunges you into "The Deep Void" to view your most intense memory.
 - **Priority Override:** A built-in AI safety classifier that detects acute stress in your entries and elegantly overrides the UI to offer immediate grounding.
