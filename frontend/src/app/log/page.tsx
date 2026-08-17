@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, FormEvent, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useGameState } from "./hooks/useGameState";
+import { useGameState } from "../hooks/useGameState";
 
 export default function NewEntryView() {
   const [inputText, setInputText] = useState("");
