@@ -46,9 +46,14 @@ def init_db():
             zone TEXT,
             intensity INTEGER,
             reflection_line TEXT,
+            micro_action TEXT,
             position_seed REAL
         )
     ''')
+    try:
+        c.execute("ALTER TABLE entries ADD COLUMN micro_action TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     conn.close()
 
@@ -66,6 +71,7 @@ class EntryResponse(BaseModel):
     zone: Optional[str] = None
     intensity: Optional[int] = None
     reflection_line: Optional[str] = None
+    micro_action: Optional[str] = None
     position_seed: Optional[float] = None
 
 
@@ -76,6 +82,7 @@ class WorldEntry(BaseModel):
     zone: str
     intensity: int
     reflection_line: str
+    micro_action: Optional[str] = None
     position_seed: float
 
 
@@ -132,7 +139,7 @@ def fallback_analyze(text: str) -> tuple:
     return zone, intensity
 
 
-def fallback_reflect(text: str) -> str:
+def fallback_reflect(text: str) -> tuple:
     cleaned = text.strip()
     if len(cleaned) > 100:
         snippet = cleaned[:97] + "..."
@@ -140,7 +147,7 @@ def fallback_reflect(text: str) -> str:
         snippet = cleaned
     if not snippet.endswith((".", "!", "?")):
         snippet += "."
-    return f"A moment captured: {snippet}"
+    return f"A moment captured: {snippet}", "Take a slow, deep breath."
 
 
 def fallback_chat(memory_text: str, user_msg: str) -> str:
@@ -157,12 +164,14 @@ def create_entry(req: EntryRequest):
             zone="positive",
             intensity=1,
             reflection_line="A quiet moment of stillness.",
+            micro_action="Sit quietly for 60 seconds.",
             position_seed=0.5
         )
 
     api_key = os.environ.get("QWEN_API_KEY")
     risk = "safe"
     reflection_line = None
+    micro_action = None
     zone = "positive"
     intensity = 5
 
@@ -201,9 +210,13 @@ def create_entry(req: EntryRequest):
                 max_tokens=150,
                 timeout=6.0
             )
-            reflection_line = resp_r.choices[0].message.content.strip().replace('"', '')
+            raw_r = resp_r.choices[0].message.content.strip()
+            cleaned_r = raw_r.replace("```json", "").replace("```", "").strip()
+            reflector_data = json.loads(cleaned_r)
+            reflection_line = reflector_data.get("reflection_line", "A moment captured.")
+            micro_action = reflector_data.get("micro_action", "Take a deep breath.")
         except Exception:
-            reflection_line = fallback_reflect(user_text)
+            reflection_line, micro_action = fallback_reflect(user_text)
 
         # 3. Analyzer
         try:
@@ -229,7 +242,7 @@ def create_entry(req: EntryRequest):
         risk = fallback_guardrail(user_text)
         if risk == "crisis":
             return EntryResponse(mode="crisis", text=CRISIS_RESPONSE_TEXT)
-        reflection_line = fallback_reflect(user_text)
+        reflection_line, micro_action = fallback_reflect(user_text)
         zone, intensity = fallback_analyze(user_text)
 
     position_seed = random.random()
@@ -237,9 +250,9 @@ def create_entry(req: EntryRequest):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('''
-        INSERT INTO entries (timestamp, raw_text, zone, intensity, reflection_line, position_seed)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (time.time(), user_text, zone, intensity, reflection_line, position_seed))
+        INSERT INTO entries (timestamp, raw_text, zone, intensity, reflection_line, micro_action, position_seed)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (time.time(), user_text, zone, intensity, reflection_line, micro_action, position_seed))
     entry_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -251,6 +264,7 @@ def create_entry(req: EntryRequest):
         zone=zone,
         intensity=intensity,
         reflection_line=reflection_line,
+        micro_action=micro_action,
         position_seed=position_seed
     )
 
